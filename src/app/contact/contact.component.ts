@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { flyInOut } from '../animations/app.animation';
+import { expand, flyInOut } from '../animations/app.animation';
+import { FeedbackService } from '../services/feedback.service';
 
 import { Feedback, ContactType } from '../shared/feedback';
 @Component({
@@ -12,7 +13,8 @@ import { Feedback, ContactType } from '../shared/feedback';
     'style': 'display: block;'
   },
   animations: [
-    flyInOut()
+    flyInOut(),
+    expand()
   ]
 })
 export class ContactComponent implements OnInit {
@@ -20,6 +22,10 @@ export class ContactComponent implements OnInit {
   feedback: Feedback;
   contactType = ContactType;
   @ViewChild('fform') feedbackFormDirective;
+  errMess: string;
+  showContactForm: boolean = true;
+  showContactSaved: boolean = false;
+  showProgress: boolean = false;
 
   formErrors = {
     'firstname': '',
@@ -49,7 +55,8 @@ export class ContactComponent implements OnInit {
     },
   };
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder,
+    private feedbackService: FeedbackService) {
     this.createForm();
   }
 
@@ -95,7 +102,27 @@ export class ContactComponent implements OnInit {
 
   onSubmit() {
     this.feedback = this.feedbackForm.value;
+    this.showContactForm = false;
+    this.showProgress = true;
     console.log(this.feedback);
+    this.feedbackService.submitFeedback(this.feedback)
+      .subscribe(dish => {
+        this.feedback = dish;
+        this.showProgress = false;
+        this.showContactSaved = true;
+        setTimeout(() => {
+          this.showContactSaved = false;
+          this.showContactForm = true;
+        }, 5000);
+      },
+        errmess => {
+          this.feedback = null;
+          this.errMess = <any>errmess;
+          this.showContactForm = true;
+          this.showProgress = false;
+          this.showContactSaved = false;
+        });
+
     this.feedbackForm.reset({
       firstname: '',
       lastname: '',
